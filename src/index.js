@@ -16,23 +16,84 @@ app.post('/webhook', async (req, res) => {
       const replyToken = event.replyToken;
       const userMessage = event.message.text.trim();
 
-      let replyMessage = '';
-
       switch (userMessage) {
         case '1':
-          replyMessage = '📍 目前看診進度為：第 12 號病患，請 13 號至 1 號診間候診';
+          await replyFlex(replyToken, '看診進度查詢', {
+            type: 'bubble',
+            body: {
+              type: 'box',
+              layout: 'vertical',
+              contents: [
+                { type: 'text', text: '📍 看診進度', weight: 'bold', size: 'lg' },
+                { type: 'separator', margin: 'md' },
+                { type: 'text', text: '診間一：第 12 號\n診間二：第 9 號', margin: 'md', size: 'md' },
+                { type: 'text', text: '請第 13 號病患準備', margin: 'sm', size: 'sm', color: '#888888' }
+              ]
+            }
+          });
           break;
-        case '2':
-          replyMessage = '📝 請點選以下連結進行掛號：https://your-register-link.com';
-          break;
-        case '3':
-          replyMessage = '🕒 本日看診時間為 08:30～12:00、14:00～17:30（中午休診）';
-          break;
-        default:
-          replyMessage = '🙋 請輸入以下數字選擇服務：\n1️⃣ 查詢目前進度\n2️⃣ 我要掛號\n3️⃣ 看診時間';
-      }
 
-      await replyText(replyToken, replyMessage);
+        case '2':
+          await replyFlex(replyToken, '掛號入口', {
+            type: 'bubble',
+            body: {
+              type: 'box',
+              layout: 'vertical',
+              contents: [
+                { type: 'text', text: '📝 我要掛號', weight: 'bold', size: 'lg' },
+                { type: 'text', text: '請點選下方按鈕前往掛號系統：', margin: 'md', size: 'md' }
+              ]
+            },
+            footer: {
+              type: 'box',
+              layout: 'vertical',
+              contents: [
+                {
+                  type: 'button',
+                  action: {
+                    type: 'uri',
+                    label: '前往掛號',
+                    uri: 'https://your-register-link.com'
+                  },
+                  style: 'primary'
+                }
+              ]
+            }
+          });
+          break;
+
+        case '3':
+          await replyFlex(replyToken, '今日看診時間', {
+            type: 'bubble',
+            hero: {
+              type: 'image',
+              url: 'https://i.imgur.com/6PhGv9p.png',
+              size: 'full',
+              aspectRatio: '20:6',
+              aspectMode: 'cover'
+            },
+            body: {
+              type: 'box',
+              layout: 'vertical',
+              spacing: 'md',
+              contents: [
+                { type: 'text', text: '📅 今日看診時間', weight: 'bold', size: 'lg' },
+                { type: 'separator' },
+                { type: 'text', text: '🕘 上午門診：08:30 ~ 12:00', size: 'md' },
+                { type: 'text', text: '☕ 午休時間：12:00 ~ 14:00', size: 'md' },
+                { type: 'text', text: '🕑 下午門診：14:00 ~ 17:30', size: 'md' },
+                { type: 'separator' },
+                { type: 'text', text: '🏥 感謝您的來訊，祝您健康平安！', size: 'sm', wrap: true, color: '#888888' }
+              ]
+            }
+          });
+          break;
+
+        default:
+          await replyText(replyToken,
+            '🙋 請輸入以下數字選擇服務：\n1️⃣ 查詢目前進度\n2️⃣ 我要掛號\n3️⃣ 看診時間'
+          );
+      }
     }
   }
 
@@ -51,12 +112,7 @@ async function replyText(replyToken, text) {
   try {
     await axios.post('https://api.line.me/v2/bot/message/reply', {
       replyToken,
-      messages: [
-        {
-          type: 'text',
-          text: text
-        }
-      ]
+      messages: [{ type: 'text', text }]
     }, {
       headers: {
         'Content-Type': 'application/json',
@@ -64,6 +120,22 @@ async function replyText(replyToken, text) {
       }
     });
   } catch (err) {
-    console.error('❌ LINE 回覆訊息錯誤：', err.response?.data || err.message);
+    console.error('❌ 回覆文字訊息失敗：', err.response?.data || err.message);
+  }
+}
+
+async function replyFlex(replyToken, altText, contents) {
+  try {
+    await axios.post('https://api.line.me/v2/bot/message/reply', {
+      replyToken,
+      messages: [{ type: 'flex', altText, contents }]
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.CHANNEL_ACCESS_TOKEN}`
+      }
+    });
+  } catch (err) {
+    console.error('❌ 回覆 Flex Message 失敗：', err.response?.data || err.message);
   }
 }
